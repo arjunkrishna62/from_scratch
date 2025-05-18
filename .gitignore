@@ -1,0 +1,7 @@
+# Model files
+*.pth
+model_and_optimizer.pth
+model.pth
+
+# Jupyter notebook checkpoints
+.ipynb_checkpoints/
