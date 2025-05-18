@@ -3,27 +3,14 @@
 model_and_optimizer.pth
 model.pth
 
+# GPT-2 model files and directories
+gpt2/
+gpt2_*/
+*.ckpt*
+
 # Jupyter notebook checkpoints
 .ipynb_checkpoints/
-# GPT-2 model files and data
-gpt2/
-gpt2_*/ # This will match directories like gpt2_medium, gpt2_large, etc.
-# Large model files
-model_and_optimizer.pth
-model.pth
-*.pth
 
-# GPT-2 model files
-gpt2/
-*.ckpt*
-# Large model files
-model_and_optimizer.pth
-model.pth
-*.pth
-
-# GPT-2 model files
-gpt2/
-*.ckpt*
 # Python cache files
 __pycache__/
 *.py[cod]
