@@ -5,3 +5,6 @@ model.pth
 
 # Jupyter notebook checkpoints
 .ipynb_checkpoints/
+# GPT-2 model files and data
+gpt2/
+gpt2_*/ # This will match directories like gpt2_medium, gpt2_large, etc.
