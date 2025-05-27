@@ -27,3 +27,17 @@ keys = inputs @ W_key
 values = inputs @ W_value
 print("keys.shape:", keys.shape)
 print("values.shape:", values.shape)
+
+keys_2 = keys[1]
+attn_score_22 = query_2.dot(keys_2)
+print(attn_score_22) # unnormalized attention score
+
+attn_scores_2 = query_2 @ keys.T # computaton to all attention scores
+print(attn_scores_2) # 2nd element matches we computed prev (attn_scores_22)
+
+d_k = keys.shape[-1] 
+attn_weights_2 = torch.softmax(attn_scores_2 / d_k**0.5, dim=-1) # qk^T / root_dk(dim of the key matrix)
+print(attn_weights_2)
+
+context_vec_2 = attn_weights_2 @ values
+print('context_vector - > ',context_vec_2)
