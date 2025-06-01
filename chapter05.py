@@ -108,6 +108,7 @@ print("Mean:\n", mean)
 print("Variance:\n", var)
 
 # Layer noramalization classs
+# This specific implementation of layer normalization operates on the last dimension of the input tensor x, which represents embedding dim (emb_dim).
 
 class LayerNorm(nn.Module):
     def __init__(self, emb_dim):
@@ -115,9 +116,46 @@ class LayerNorm(nn.Module):
         self.eps = 1e-5
         self.scale = nn.Parameter(torch.ones(emb_dim))
         self.shift = nn.Parameter(torch.zeros(emb_dim))
-        
+
     def forward(self, x):
         mean = x.mean(dim=-1, keepdim=True)
         var = x.var(dim=-1, keepdim=True, unbiased=False)
         norm_x = (x - mean) / torch.sqrt(var + self.eps)
         return self.scale * norm_x + self.shift
+
+# results show that the layer normalization code works as expected and normalizes
+# the values of each of the two inputs such that they have a mean of 0 and a variance of 1:
+
+ln = LayerNorm(emb_dim=5)
+out_ln = ln(batch_example)
+mean = out_ln.mean(dim=-1, keepdim=True)
+var = out_ln.var(dim=-1, unbiased=False, keepdim=True)
+print("Mean:\n", mean)
+print("Variance:\n", var)
+
+# Implementing a feed forward network with GELU activations (instead of traditional ReLu)
+
+class GELU(nn.Module):
+    def __init__(self):
+        super().__init__()
+    def forward(self, x):
+        return 0.5 * x * (1 + torch.tanh(
+            torch.sqrt(torch.tensor(2.0 / torch.pi)) *
+            (x + 0.044715 * torch.pow(x, 3))
+        ))
+    
+import matplotlib.pyplot as plt
+gelu, relu = GELU(), nn.ReLU()
+
+x = torch.linspace(-3, 3, 100)
+y_gelu, y_relu = gelu(x), relu(x)
+plt.figure(figsize=(8, 3))
+for i, (y, label) in enumerate(zip([y_gelu, y_relu], ["GELU", "ReLU"]), 1):
+    plt.subplot(1, 2, i)
+    plt.plot(x, y)
+    plt.title(f"{label} activation function")
+    plt.xlabel("x")
+    plt.ylabel(f"{label}(x)")
+    plt.grid(True)
+plt.tight_layout()
+plt.show()
