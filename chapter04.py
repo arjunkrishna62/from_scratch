@@ -311,4 +311,46 @@ class GPTModel(nn.Module):
         x = self.final_norm(x)
         logits = self.out_head(x)
         return logits
-                
+    
+torch.manual_seed(123)
+model = GPTModel(GPT_CONFIG_124M)
+out = model(batch)
+print("Input batch:\n", batch)
+print("\nOutput shape:", out.shape)
+print(out)
+
+total_params = sum(p.numel() for p in model.parameters()) # numel() numbfer of elemtnts 
+print(f"Total number of parameters: {total_params:,}") # 163m instead of 124m why?
+
+# concept called weight tying, which was used in the original GPT-2 architecture.
+# It means that the original GPT-2 architecture reuses the weights from the token embedding layer in its output layer.
+
+print("Token embedding layer shape:", model.tok_emb.weight.shape)
+print("Output layer shape:", model.out_head.weight.shape)
+
+# Token embedding layer shape: torch.Size([50257, 768])
+# Output layer shape: torch.Size([50257, 768])
+
+# The token embedding and output layers are very large due to the number of rows for
+# the 50,257 in the tokenizer’s vocabulary. Let’s remove the output layer parameter
+# count from the total GPT-2 model count according to the weight tying:
+
+total_params_gpt2 = (
+    total_params - sum(p.numel()
+    for p in model.out_head.parameters())
+)
+print(f"Number of trainable parameters " f"considering weight tying: {total_params_gpt2:,}" ) # outputts 124m
+
+# generating sample text 
+
+def generate_text_simple(model, idx, # dx is a (batch, n_tokens) array of indices in the current context.
+    max_new_tokens, context_size):
+    for _ in range(max_new_tokens):
+        idx_cond = idx[:, -context_size:] # crops current context if exceeds the supported context size, if llm supports only 5 tokens, and the context is 10, then only the last 5 tokens are used as context
+        with torch.no_grad():
+            logits = model(idx_cond)
+        logits = logits[:, -1, :] # Focuses only on the last time step, so that (batch, n_token, vocab_size) becomes (batch, vocab_size)
+        probas = torch.softmax(logits, dim=-1) # prob has shape (batch, vocab_size).
+        idx_next = torch.argmax(probas, dim=-1, keepdim=True) # idx next has shape(batch, 1)
+        idx = torch.cat((idx, idx_next), dim=1) # appends sampled text to the running sequence, where idx has shape(batch, n_tokens+1)
+    return idx
