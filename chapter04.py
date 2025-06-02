@@ -354,3 +354,24 @@ def generate_text_simple(model, idx, # dx is a (batch, n_tokens) array of indice
         idx_next = torch.argmax(probas, dim=-1, keepdim=True) # idx next has shape(batch, 1)
         idx = torch.cat((idx, idx_next), dim=1) # appends sampled text to the running sequence, where idx has shape(batch, n_tokens+1)
     return idx
+
+start_context = "Hello, I am"
+encoded = tokenizer.encode(start_context)
+print("encoded:", encoded)
+encoded_tensor = torch.tensor(encoded).unsqueeze(0) # adds batch dim
+print("encoded_tensor.shape:", encoded_tensor.shape)
+
+model.eval() # Disables dropout since we are not training the model
+out = generate_text_simple(
+    model=model,
+    idx=encoded_tensor,
+    max_new_tokens=6,
+    context_size=GPT_CONFIG_124M["context_length"]
+)
+print("Output:", out)
+print("Output length:", len(out[0]))
+
+# using the .decode method of the tokenzer, to convert token IDs back into text.
+
+decoded_text = tokenizer.decode(out.squeeze(0).tolist())
+print('decoded text :- ',decoded_text) # he model generated gibberish, which is not at all like the coherent text
