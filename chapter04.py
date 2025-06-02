@@ -17,45 +17,45 @@ GPT_CONFIG_124M = {
 import torch
 import torch.nn as nn
 
-class DummyGPTModel(nn.Module):
-    def __init__(self, cfg):
-        super().__init__()
-        self.tok_emb = nn.Embedding(cfg["vocab_size"], cfg["emb_dim"])
-        self.pos_emb = nn.Embedding(cfg["context_length"], cfg["emb_dim"])
-        self.drop_emb = nn.Dropout(cfg["drop_rate"])
-        self.trf_blocks = nn.Sequential( # placeholder for tfr blocks
-            *[DummyTransformerBlock(cfg)
-            for _ in range(cfg["n_layers"])]
-        )
-        self.final_norm = DummyLayerNorm(cfg["emb_dim"]) # layer norm placeholder 
-        self.out_head = nn.Linear(
-            cfg["emb_dim"], cfg["vocab_size"], bias=False
-        )
+# class DummyGPTModel(nn.Module):
+#     def __init__(self, cfg):
+#         super().__init__()
+#         self.tok_emb = nn.Embedding(cfg["vocab_size"], cfg["emb_dim"])
+#         self.pos_emb = nn.Embedding(cfg["context_length"], cfg["emb_dim"])
+#         self.drop_emb = nn.Dropout(cfg["drop_rate"])
+#         self.trf_blocks = nn.Sequential( # placeholder for tfr blocks
+#             *[DummyTransformerBlock(cfg)
+#             for _ in range(cfg["n_layers"])]
+#         )
+#         self.final_norm = DummyLayerNorm(cfg["emb_dim"]) # layer norm placeholder 
+#         self.out_head = nn.Linear(
+#             cfg["emb_dim"], cfg["vocab_size"], bias=False
+#         )
 
-    def forward(self, in_idx):
-        batch_size, seq_len = in_idx.shape
-        tok_embeds = self.tok_emb(in_idx)
-        pos_embeds = self.pos_emb(
-            torch.arange(seq_len, device=in_idx.device)
-        )
-        x = tok_embeds + pos_embeds
-        x = self.drop_emb(x)
-        x = self.trf_blocks(x)
-        x = self.final_norm(x)
-        logits = self.out_head(x)
-        return logits
+#     def forward(self, in_idx):
+#         batch_size, seq_len = in_idx.shape
+#         tok_embeds = self.tok_emb(in_idx)
+#         pos_embeds = self.pos_emb(
+#             torch.arange(seq_len, device=in_idx.device)
+#         )
+#         x = tok_embeds + pos_embeds
+#         x = self.drop_emb(x)
+#         x = self.trf_blocks(x)
+#         x = self.final_norm(x)
+#         logits = self.out_head(x)
+#         return logits
     
-class DummyTransformerBlock(nn.Module):
-    def __init__(self, cfg):
-        super().__init__()
-    def forward(self, x):
-        return x
+# class DummyTransformerBlock(nn.Module):
+#     def __init__(self, cfg):
+#         super().__init__()
+#     def forward(self, x):
+#         return x
     
-class DummyLayerNorm(nn.Module):
-    def __init__(self, normalized_shape, eps=1e-5):
-        super().__init__()
-    def forward(self, x):
-        return x
+# class DummyLayerNorm(nn.Module):
+#     def __init__(self, normalized_shape, eps=1e-5):
+#         super().__init__()
+#     def forward(self, x):
+#         return x
     
 
 import tiktoken
@@ -69,11 +69,11 @@ batch.append(torch.tensor(tokenizer.encode(txt2)))
 batch = torch.stack(batch, dim=0)
 print(batch)
 
-torch.manual_seed(123)
-model = DummyGPTModel(GPT_CONFIG_124M)
-logits = model(batch)
-print("Output shape:", logits.shape)
-print('from 124m :- ',logits)
+# torch.manual_seed(123)
+# model = DummyGPTModel(GPT_CONFIG_124M)
+# logits = model(batch)
+# print("Output shape:", logits.shape)
+# print('from 124m :- ',logits)
 
 torch.manual_seed(123)
 batch_example = torch.randn(2, 5)
@@ -83,19 +83,19 @@ print(out)
 
 # before layer norm compute mean and var
 
-mean = out.mean(dim=-1, keepdim=True)
-var = out.var(dim=-1, keepdim=True)
-print("Mean:\n", mean)
-print("Variance:\n", var)
+# mean = out.mean(dim=-1, keepdim=True)
+# var = out.var(dim=-1, keepdim=True)
+# print("Mean:\n", mean)
+# print("Variance:\n", var)
 
-# applying layer noramlization to the output
+# # applying layer noramlization to the output
 
-out_norm = (out - mean) / torch.sqrt(var)
-mean = out_norm.mean(dim=-1, keepdim=True)
-var = out_norm.var(dim=-1, keepdim=True)
-print("Normalized layer outputs:\n", out_norm)
-print("Mean:\n", mean)
-print("Variance:\n", var)
+# out_norm = (out - mean) / torch.sqrt(var)
+# mean = out_norm.mean(dim=-1, keepdim=True)
+# var = out_norm.var(dim=-1, keepdim=True)
+# print("Normalized layer outputs:\n", out_norm)
+# print("Mean:\n", mean)
+# print("Variance:\n", var)
 
 # note that the value –5.9605e-08 in the output tensor is the scientific notation for
 # –5.9605 × 10-8, which is –0.000000059605 in decimal form. This value is very close to 0,
@@ -103,9 +103,9 @@ print("Variance:\n", var)
 # the finite precision with which computers represent numbers.
 
 # after removiing the scientific notation
-torch.set_printoptions(sci_mode=False)
-print("Mean:\n", mean)
-print("Variance:\n", var)
+# torch.set_printoptions(sci_mode=False)
+# print("Mean:\n", mean)
+# print("Variance:\n", var)
 
 # Layer noramalization classs
 # This specific implementation of layer normalization operates on the last dimension of the input tensor x, which represents embedding dim (emb_dim).
@@ -126,12 +126,12 @@ class LayerNorm(nn.Module):
 # results show that the layer normalization code works as expected and normalizes
 # the values of each of the two inputs such that they have a mean of 0 and a variance of 1:
 
-ln = LayerNorm(emb_dim=5)
-out_ln = ln(batch_example)
-mean = out_ln.mean(dim=-1, keepdim=True)
-var = out_ln.var(dim=-1, unbiased=False, keepdim=True)
-print("Mean:\n", mean)
-print("Variance:\n", var)
+# ln = LayerNorm(emb_dim=5)
+# out_ln = ln(batch_example)
+# mean = out_ln.mean(dim=-1, keepdim=True)
+# var = out_ln.var(dim=-1, unbiased=False, keepdim=True)
+# print("Mean:\n", mean)
+# print("Variance:\n", var)
 
 # Implementing a feed forward network with GELU activations (instead of traditional ReLu)
 
@@ -145,7 +145,7 @@ class GELU(nn.Module):
             (x + 0.044715 * torch.pow(x, 3))
         ))
     
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 # gelu, relu = GELU(), nn.ReLU()
 
 # x = torch.linspace(-3, 3, 100)
@@ -178,9 +178,9 @@ class FeedForward(nn.Module):
 ffn = FeedForward(GPT_CONFIG_124M)
 x = torch.rand(2, 3, 768)
 out = ffn(x)
-print(out.shape)
+# print(out.shape)
 
-# Shortcut Connections or Skip Conncetions or Residual Connections
+# # Shortcut Connections or Skip Conncetions or Residual Connections
 # as the layer progress there's a high chance of problem like vanishing gradient.
 # vanshing gradient :- vanishing gradient problem refers to the issue where gradients
 #     (which guide weight updates during training) become progressively smaller as they
@@ -190,61 +190,61 @@ print(out.shape)
 #         creates alternative or shotcut path for grdient flow  thruogh the network by skipping one or more layers,
 #         which is achieved by adding output of one layer to the output of a later layer
 
-class ExampleDeepNeuralNetwork(nn.Module):
-    def __init__(self, layer_sizes, use_shortcut):
-        super().__init__()
-        self.use_shortcut = use_shortcut
-        self.layers = nn.ModuleList([
-        nn.Sequential(nn.Linear(layer_sizes[0], layer_sizes[1]),
-        GELU()),
-        nn.Sequential(nn.Linear(layer_sizes[1], layer_sizes[2]),
-        GELU()),
-        nn.Sequential(nn.Linear(layer_sizes[2], layer_sizes[3]),
-        GELU()),
-        nn.Sequential(nn.Linear(layer_sizes[3], layer_sizes[4]),
-        GELU()),
-        nn.Sequential(nn.Linear(layer_sizes[4], layer_sizes[5]),
-        GELU())
-        ])
-    def forward(self, x):
-        for layer in self.layers:
-            layer_output = layer(x) # compute the output of the current layer
-            if self.use_shortcut and x.shape == layer_output.shape: # check if shortcuts can be applied
-                x = x + layer_output 
-            else:
-                x = layer_output
-        return x
+# class ExampleDeepNeuralNetwork(nn.Module):
+#     def __init__(self, layer_sizes, use_shortcut):
+#         super().__init__()
+#         self.use_shortcut = use_shortcut
+#         self.layers = nn.ModuleList([
+#         nn.Sequential(nn.Linear(layer_sizes[0], layer_sizes[1]),
+#         GELU()),
+#         nn.Sequential(nn.Linear(layer_sizes[1], layer_sizes[2]),
+#         GELU()),
+#         nn.Sequential(nn.Linear(layer_sizes[2], layer_sizes[3]),
+#         GELU()),
+#         nn.Sequential(nn.Linear(layer_sizes[3], layer_sizes[4]),
+#         GELU()),
+#         nn.Sequential(nn.Linear(layer_sizes[4], layer_sizes[5]),
+#         GELU())
+#         ])
+#     def forward(self, x):
+#         for layer in self.layers:
+#             layer_output = layer(x) # compute the output of the current layer
+#             if self.use_shortcut and x.shape == layer_output.shape: # check if shortcuts can be applied
+#                 x = x + layer_output 
+#             else:
+#                 x = layer_output
+#         return x
 
 
-layer_sizes = [3, 3, 3, 3, 3, 1]
-sample_input = torch.tensor([[1., 0., -1.]])
-torch.manual_seed(123)
-model_without_shortcut = ExampleDeepNeuralNetwork(
-    layer_sizes, use_shortcut=False
-)
+# layer_sizes = [3, 3, 3, 3, 3, 1]
+# sample_input = torch.tensor([[1., 0., -1.]])
+# torch.manual_seed(123)
+# model_without_shortcut = ExampleDeepNeuralNetwork(
+#     layer_sizes, use_shortcut=False
+# )
 
-def print_gradients(model, x):
-    output = model(x) # fwd pass
-    target = torch.tensor([[0.]])
+# def print_gradients(model, x):
+#     output = model(x) # fwd pass
+#     target = torch.tensor([[0.]])
 
-    loss = nn.MSELoss()
-    loss = loss(output, target) # calculates loss based on how close the target and output are
+#     loss = nn.MSELoss()
+#     loss = loss(output, target) # calculates loss based on how close the target and output are
 
-    loss.backward() # backward pass to calculate the gradients
+#     loss.backward() # backward pass to calculate the gradients
 
-    for name, param in model.named_parameters():
-        if 'weight' in name:
-            print(f"{name} has gradient mean of {param.grad.abs().mean().item()}")
+#     for name, param in model.named_parameters():
+#         if 'weight' in name:
+#             print(f"{name} has gradient mean of {param.grad.abs().mean().item()}")
 
-print_gradients(model_without_shortcut, sample_input) #  the gradients become smaller as we progress from the last layer (layers.4) to the first layer (layers.0)
+# print_gradients(model_without_shortcut, sample_input) #  the gradients become smaller as we progress from the last layer (layers.4) to the first layer (layers.0)
 
-# so model with skip connections
-torch.manual_seed(123)
-model_with_shortcut = ExampleDeepNeuralNetwork(
-    layer_sizes, use_shortcut=True
-)
-print('after applying skip connectiosn..')
-print_gradients(model_with_shortcut, sample_input)
+# # so model with skip connections
+# torch.manual_seed(123)
+# model_with_shortcut = ExampleDeepNeuralNetwork(
+#     layer_sizes, use_shortcut=True
+# )
+# print('after applying skip connectiosn..')
+# print_gradients(model_with_shortcut, sample_input)
 
 from chapter03 import MultiHeadAttention
 

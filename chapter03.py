@@ -66,7 +66,7 @@ class SelfAttention_v1(nn.Module):
     
 torch.manual_seed(123)
 sa_v1 = SelfAttention_v1(d_in, d_out)
-print('nn.parameter\n',sa_v1(inputs))
+# print('nn.parameter\n',sa_v1(inputs))
 
 # self-attention using linear layer.
 # instead of manually implementing nn.Parameter(torch.rand(...)) is that nn.Linear
@@ -174,7 +174,7 @@ torch.manual_seed(123)
 context_length = batch.shape[1]
 ca = CausalAttention(d_in, d_out, context_length, 0.0)
 context_vecs = ca(batch)
-print("context_vecs.shape:", context_vecs.shape)
+# print("context_vecs.shape:", context_vecs.shape)
 
 # mha wrapper
 class MultiHeadAttentionWrapper(nn.Module):
@@ -197,9 +197,9 @@ d_in, d_out = 3, 2
 mha = MultiHeadAttentionWrapper(
     d_in, d_out, context_length, 0.0, num_heads=2
 )
-context_vecs = mha(batch)
-print('context_vector \n',context_vecs)
-print("context_vecs.shape:", context_vecs.shape)
+# context_vecs = mha(batch)
+# print('context_vector \n',context_vecs)
+# print("context_vecs.shape:", context_vecs.shape)
 
 # multihead attention with weight splits
 
