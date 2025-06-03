@@ -387,3 +387,56 @@ def generate(model, idx, max_new_tokens, context_size,
             break
         idx = torch.cat((idx, idx_next), dim=1)
     return idx
+
+torch.manual_seed(123)
+token_ids = generate(
+    model=model,
+    idx=text_to_token_ids("Every effort moves you", tokenizer),
+    max_new_tokens=15,
+    context_size=GPT_CONFIG_124M["context_length"],
+    top_k=25,
+    temperature=1.4
+)
+print("Output text:\n", token_ids_to_text(token_ids, tokenizer))
+
+# Loading and saving model weights in PyTorch
+
+torch.save(model.state_dict(), "model.pth")
+
+# after saving load the model
+
+model = GPTModel(GPT_CONFIG_124M)
+model.load_state_dict(torch.load("model.pth", map_location=device))
+model.eval()
+# Adaptive optimizers such as AdamW store additional parameters for each model weight.
+# AdamW uses historical data to adjust learning rates for each model parameter dynamically.
+# Without it, the optimizer resets, and the model may learn suboptimally or even fail to converge properly, which means it will lose the ability to generate coherent text.
+# Using torch.save, we can save both the model and optimizer state_dict contents:
+optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+torch.save({
+    "model_state_dict": model.state_dict(),
+    "optimizer_state_dict": optimizer.state_dict(),
+    },
+    "model_and_optimizer.pth"
+)
+
+checkpoint = torch.load("model_and_optimizer.pth", map_location=device)
+model = GPTModel(GPT_CONFIG_124M)
+model.load_state_dict(checkpoint["model_state_dict"])
+optimizer = torch.optim.AdamW(model.parameters(), lr=5e-4, weight_decay=0.1)
+optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+model.train()
+
+import urllib.request
+url = (
+    "https://raw.githubusercontent.com/rasbt/"
+    "LLMs-from-scratch/main/ch05/"
+    "01_main-chapter-code/gpt_download.py"
+)
+filename = url.split('/')[-1]
+urllib.request.urlretrieve(url, filename)
+
+from gpt_download import download_and_load_gpt2
+settings, params = download_and_load_gpt2(
+    model_size="124M", models_dir="gpt2"
+)
