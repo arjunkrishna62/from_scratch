@@ -37,7 +37,7 @@ token_ids = generate_text_simple(
     context_size=GPT_CONFIG_124M["context_length"]
 )
 
-print("Output text:\n", token_ids_to_text(token_ids, tokenizer))
+# print("Output text:\n", token_ids_to_text(token_ids, tokenizer))
 
 # calculating text generation loss
 inputs = torch.tensor([[16833, 3626, 6100], # ["every effort moves",
@@ -271,10 +271,10 @@ model.eval()
 
 tokenizer = tiktoken.get_encoding("gpt2")
 token_ids = generate_text_simple(
-model=model,
-idx=text_to_token_ids("Every effort moves you", tokenizer),
-max_new_tokens=25,
-context_size=GPT_CONFIG_124M["context_length"]
+    model=model,
+    idx=text_to_token_ids("Every effort moves you", tokenizer),
+    max_new_tokens=25,
+    context_size=GPT_CONFIG_124M["context_length"]
 )
 # print("Output text:\n", token_ids_to_text(token_ids, tokenizer))
 
@@ -301,12 +301,12 @@ next_token_logits = torch.tensor(
 # generated token via the argmax function, which we can then map back into text via the inverse vocabulary:
 probas = torch.softmax(next_token_logits, dim=0)
 next_token_id = torch.argmax(probas).item()
-print(inverse_vocab[next_token_id])
+# print(inverse_vocab[next_token_id])
 
 # To implement a probabilistic sampling process, we can now replace argmax with the multinomial function in PyTorch:
 torch.manual_seed(123)
 next_token_id = torch.multinomial(probas, num_samples=1).item()
-print(inverse_vocab[next_token_id])
+# print(inverse_vocab[next_token_id])
 
 def print_sampled_tokens(probas):
     torch.manual_seed(123)
@@ -397,7 +397,7 @@ token_ids = generate(
     top_k=25,
     temperature=1.4
 )
-print("Output text:\n", token_ids_to_text(token_ids, tokenizer))
+# print("Output text:\n", token_ids_to_text(token_ids, tokenizer))
 
 # Loading and saving model weights in PyTorch
 
@@ -441,11 +441,11 @@ settings, params = download_and_load_gpt2(
     model_size="124M", models_dir="gpt2"
 )
 
-print("Settings:", settings)
-print("Parameter dictionary keys:", params.keys())
+# print("Settings:", settings)
+# print("Parameter dictionary keys:", params.keys())
 
 print(params["wte"])
-print("Token embedding weight tensor dimensions:", params["wte"].shape)
+# print("Token embedding weight tensor dimensions:", params["wte"].shape)
 
 model_configs = {
     "gpt2-small (124M)": {"emb_dim": 768, "n_layers": 12, "n_heads": 12},
@@ -552,4 +552,9 @@ token_ids = generate(
     top_k=50,
     temperature=1.0
 ) 
-print("Output text:\n", token_ids_to_text(token_ids, tokenizer)) # if the model is loaded correctly then it will produce coherant text
+print("Output text after pre-training:\n", token_ids_to_text(token_ids, tokenizer)) # if the model is loaded correctly then it will produce coherant text
+
+with torch.no_grad():
+    outputs = model(inputs)
+print("Outputs:\n", outputs)
+print("Outputs dimensions:", outputs.shape)

@@ -69,7 +69,7 @@ test_df.to_csv("test.csv", index=None)
 
 import tiktoken
 tokenizer = tiktoken.get_encoding("gpt2")
-print(tokenizer.encode("<|endoftext|>", allowed_special={"<|endoftext|>"})) # for creating data_loader
+# print(tokenizer.encode("<|endoftext|>", allowed_special={"<|endoftext|>"})) # for creating data_loader we use speciliased to proprocess text  (it will print [50256])
 
 # creating data loaders (like in text, each batch(chunk) for individual training unit
 # working with a spam dataset that contains text messages of varying lengths. To batch these messages as we did with the text chunks, we have two primary options:
@@ -139,7 +139,7 @@ train_dataset = SpamDataset(
     tokenizer=tokenizer
 )
 
-print(train_dataset.max_length)
+# print(train_dataset.max_length) # should print 120
 
 # we pad the validation and test sets to match the length of the longest training sequence.
 # Importantly, any validation and test set samples exceeding the length of the longest training example are truncated using encoded_text[:self.max_length] in the SpamDataset.
@@ -185,4 +185,137 @@ test_loader = DataLoader(
     drop_last=False,
 )
 
-print(balanced_df["Label"].isna().sum())  # should be 0
+# print(balanced_df["Label"].isna().sum())  # should be 0
+
+# for input_batch, target_batch in train_loader: # to ensure tha data loader is working
+    # pass
+# print("Input batch dimensions:", input_batch.shape) # 8, 120
+# print("Label batch dimensions", target_batch.shape) # 8
+
+# print(f"{len(train_loader)} training batches") # 130 training batches
+# print(f"{len(val_loader)} validation batches") # 19 val batches
+# print(f"{len(test_loader)} test batches") # 38 test batches
+
+# initializing a model with pretrained weights
+
+CHOOSE_MODEL = "gpt2-small (124M)"
+INPUT_PROMPT = "Every effort moves"
+
+BASE_CONFIG = {
+    "vocab_size": 50257,
+    "context_length": 1024,
+    "drop_rate": 0.0,
+    "qkv_bias": True
+}
+    
+model_configs = {
+    "gpt2-small (124M)": {"emb_dim": 768, "n_layers": 12, "n_heads": 12},
+    "gpt2-medium (355M)": {"emb_dim": 1024, "n_layers": 24, "n_heads": 16},
+    "gpt2-large (774M)": {"emb_dim": 1280, "n_layers": 36, "n_heads": 20},
+    "gpt2-xl (1558M)": {"emb_dim": 1600, "n_layers": 48, "n_heads": 25},
+}
+
+BASE_CONFIG.update(model_configs[CHOOSE_MODEL])
+
+# Loading a pretrained GPT model
+
+from gpt_download import download_and_load_gpt2
+from chapter05 import GPTModel, load_weights_into_gpt
+
+model_size = CHOOSE_MODEL.split(" ")[-1].lstrip("(").rstrip(")")
+settings, params = download_and_load_gpt2(
+    model_size=model_size, models_dir="gpt2"
+)
+model = GPTModel(BASE_CONFIG)
+load_weights_into_gpt(model, params)
+model.eval()
+
+# After loading the model weights into the GPTModel, we reuse the text generation utility function from chapters 4 and 5 to ensure that the model generates coherent text:
+from chapter04 import generate_text_simple
+from chapter05 import text_to_token_ids, token_ids_to_text
+text_1 = "Every effort moves you"
+token_ids = generate_text_simple(
+    model=model,
+    idx=text_to_token_ids(text_1, tokenizer),
+    max_new_tokens=15,
+    context_size=BASE_CONFIG["context_length"]
+)
+print(token_ids_to_text(token_ids, tokenizer))
+
+# Before we start fine-tuning the model as a spam classifier, let’s see whether the model already classifies spam messages by prompting it with instructions:
+text_2 = (
+    "Is the following text 'spam'? Answer with 'yes' or 'no':"
+    " 'You are a winner you have been specially"
+    " selected to receive $1000 cash or a $2000 award.'"
+)
+token_ids = generate_text_simple(
+    model=model,
+    idx=text_to_token_ids(text_2, tokenizer),
+    max_new_tokens=23,
+    context_size=BASE_CONFIG["context_length"]
+)
+
+print(token_ids_to_text(token_ids, tokenizer))
+
+# Adding a classification head
+# Fine-tuning selected layers vs. all layers
+# Since we start with a pretrained model, it’s not necessary to fine-tune all model layers.
+# In neural network-based language models, the lower layers generally capture basic language structures and semantics applicable across a wide range of tasks and datasets.
+# So, fine-tuning only the last layers (i.e., layers near the output), which are more specific to nuanced linguistic patterns and task-specific features, is often sufficient to adapt the
+# model to new tasks. A nice side effect is that it is computationally more efficient to finetune only a small number of layers.
+
+# To get the model ready for classification fine-tuning, we first freeze the model, meaning that we make all layers nontrainable:
+for param in model.parameters():
+    param.requires_grad = False
+
+torch.manual_seed(123)
+num_classes = 2
+model.out_head = torch.nn.Linear(
+    in_features=BASE_CONFIG["emb_dim"],
+    out_features=num_classes
+)
+
+# To make the final LayerNorm and last transformer block trainable, we set their respective requires_grad to True:
+for param in model.trf_blocks[-1].parameters():
+    param.requires_grad = True
+for param in model.final_norm.parameters():
+    param.requires_grad = True
+
+inputs = tokenizer.encode("Do you have time")
+inputs = torch.tensor(inputs).unsqueeze(0)
+print("Inputs:", inputs) # tensor([[5211,  345,  423,  640]])
+print("Inputs dimensions:", inputs.shape) # torch.Size([1, 4])
+
+with torch.no_grad():
+    outputs = model(inputs)
+print("Outputs:\n", outputs)
+print("Outputs dimensions:", outputs.shape)
+
+# Calculating the classification loss and accuracy by applying argmax based prediction code to all examples in the dataset
+
+def calc_accuracy_loader(data_loader, model, device, num_batches=None):
+    
+    model.eval()
+    correct_predictions, num_examples = 0, 0
+    
+    if num_batches is None:
+        num_batches = len(data_loader)
+    else:
+        num_batches = min(num_batches, len(data_loader))
+    for i, (input_batch, target_batch) in enumerate(data_loader):
+        if i < num_batches:
+            input_batch = input_batch.to(device)
+            target_batch = target_batch.to(device)
+            
+            with torch.no_grad():
+                logits = model(input_batch)[:, -1, :] # logits of last output token
+            predicted_labels = torch.argmax(logits, dim=-1)
+            
+            num_examples += predicted_labels.shape[0]
+            correct_predictions += (
+                (predicted_labels == target_batch).sum().item()
+            )
+        else:
+            break
+    return correct_predictions / num_examples
+    

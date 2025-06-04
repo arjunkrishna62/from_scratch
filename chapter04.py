@@ -67,7 +67,7 @@ txt2 = "Every day holds a"
 batch.append(torch.tensor(tokenizer.encode(txt1)))
 batch.append(torch.tensor(tokenizer.encode(txt2)))
 batch = torch.stack(batch, dim=0)
-print(batch)
+# print(batch)
 
 # torch.manual_seed(123)
 # model = DummyGPTModel(GPT_CONFIG_124M)
@@ -79,7 +79,7 @@ torch.manual_seed(123)
 batch_example = torch.randn(2, 5)
 layer = nn.Sequential(nn.Linear(5, 6), nn.ReLU())
 out = layer(batch_example)
-print(out)
+# print(out)
 
 # before layer norm compute mean and var
 
@@ -282,8 +282,8 @@ torch.manual_seed(123)
 x = torch.rand(2, 4, 768)
 block = TransformerBlock(GPT_CONFIG_124M)
 output = block(x)
-print("Input shape:", x.shape)
-print("Output shape:", output.shape)
+# print("Input shape:", x.shape)
+# print("Output shape:", output.shape)
 
 # GPT Model
 
@@ -315,18 +315,18 @@ class GPTModel(nn.Module):
 torch.manual_seed(123)
 model = GPTModel(GPT_CONFIG_124M)
 out = model(batch)
-print("Input batch:\n", batch)
-print("\nOutput shape:", out.shape)
-print(out)
+# print("Input batch:\n", batch)
+# print("\nOutput shape:", out.shape)
+# print(out)
 
 total_params = sum(p.numel() for p in model.parameters()) # numel() numbfer of elemtnts 
-print(f"Total number of parameters: {total_params:,}") # 163m instead of 124m why?
+# print(f"Total number of parameters: {total_params:,}") # 163m instead of 124m why?
 
 # concept called weight tying, which was used in the original GPT-2 architecture.
 # It means that the original GPT-2 architecture reuses the weights from the token embedding layer in its output layer.
 
-print("Token embedding layer shape:", model.tok_emb.weight.shape)
-print("Output layer shape:", model.out_head.weight.shape)
+# print("Token embedding layer shape:", model.tok_emb.weight.shape)
+# print("Output layer shape:", model.out_head.weight.shape)
 
 # Token embedding layer shape: torch.Size([50257, 768])
 # Output layer shape: torch.Size([50257, 768])
@@ -339,7 +339,7 @@ total_params_gpt2 = (
     total_params - sum(p.numel()
     for p in model.out_head.parameters())
 )
-print(f"Number of trainable parameters " f"considering weight tying: {total_params_gpt2:,}" ) # outputts 124m
+# print(f"Number of trainable parameters " f"considering weight tying: {total_params_gpt2:,}" ) # outputts 124m
 
 # generating sample text 
 
@@ -357,9 +357,9 @@ def generate_text_simple(model, idx, # dx is a (batch, n_tokens) array of indice
 
 start_context = "Hello, I am"
 encoded = tokenizer.encode(start_context)
-print("encoded:", encoded)
+# print("encoded:", encoded)
 encoded_tensor = torch.tensor(encoded).unsqueeze(0) # adds batch dim
-print("encoded_tensor.shape:", encoded_tensor.shape)
+# print("encoded_tensor.shape:", encoded_tensor.shape)
 
 model.eval() # Disables dropout since we are not training the model
 out = generate_text_simple(
@@ -368,10 +368,10 @@ out = generate_text_simple(
     max_new_tokens=6,
     context_size=GPT_CONFIG_124M["context_length"]
 )
-print("Output:", out)
-print("Output length:", len(out[0]))
+# print("Output:", out)
+# print("Output length:", len(out[0]))
 
 # using the .decode method of the tokenzer, to convert token IDs back into text.
 
 decoded_text = tokenizer.decode(out.squeeze(0).tolist())
-print('decoded text :- ',decoded_text) # he model generated gibberish, which is not at all like the coherent text
+# print('decoded text :- ',decoded_text) # he model generated gibberish, which is not at all like the coherent text
