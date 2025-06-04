@@ -283,8 +283,8 @@ for param in model.final_norm.parameters():
 
 inputs = tokenizer.encode("Do you have time")
 inputs = torch.tensor(inputs).unsqueeze(0)
-print("Inputs:", inputs) # tensor([[5211,  345,  423,  640]])
-print("Inputs dimensions:", inputs.shape) # torch.Size([1, 4])
+# print("Inputs:", inputs) # tensor([[5211,  345,  423,  640]])
+# print("Inputs dimensions:", inputs.shape) # torch.Size([1, 4])
 
 with torch.no_grad():
     outputs = model(inputs)
@@ -319,3 +319,64 @@ def calc_accuracy_loader(data_loader, model, device, num_batches=None):
             break
     return correct_predictions / num_examples
     
+# function to determine the classification accuracies across various datasets estimated from 10 batches for efficiency:
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model.to(device)
+torch.manual_seed(123)
+train_accuracy = calc_accuracy_loader(
+    train_loader, model, device, num_batches=10
+)
+val_accuracy = calc_accuracy_loader(
+    val_loader, model, device, num_batches=10
+)
+test_accuracy = calc_accuracy_loader(
+    test_loader, model, device, num_batches=10
+)
+print(f"Training accuracy: {train_accuracy*100:.2f}%") # 46.25%
+print(f"Validation accuracy: {val_accuracy*100:.2f}%") # 45.00%
+print(f"Test accuracy: {test_accuracy*100:.2f}%") # 48.75%
+# prediction accuracies are near a random prediction
+# objective is to maximize the spam classifier acccuracy of hte model
+
+
+def calc_loss_batch(input_batch, target_batch, model, device):
+    input_batch = input_batch.to(device)
+    target_batch = target_batch.to(device)
+    logits = model(input_batch)[:, -1, :] # logits of last o/p token
+    loss = torch.nn.functional.cross_entropy(logits, target_batch)
+    return loss
+
+# calc_loss_batch function to compute the loss for a single batch obtained from the previously defined data loaders. To calculate the loss for all batches in a data
+# loader, we define the calc_loss_loader function as before.
+def calc_loss_loader(data_loader, model, device, num_batches=None): # calcg the classification loss
+    total_loss = 0.
+    if len(data_loader) == 0:
+        return float("nan")
+    elif num_batches is None:
+        num_batches = len(data_loader)
+    else:
+        num_batches = min(num_batches, len(data_loader))
+    for i, (input_batch, target_batch) in enumerate(data_loader):
+        if i < num_batches:
+            loss = calc_loss_batch(
+                input_batch, target_batch, model, device
+            )
+            total_loss += loss.item()
+        else:
+            break
+    return total_loss / num_batches
+
+
+with torch.no_grad(): # # Disables gradient tracking for efficiency because we are not training yet
+    train_loss = calc_loss_loader(
+        train_loader, model, device, num_batches=5 
+    )
+val_loss = calc_loss_loader(val_loader, model, device, num_batches=5)
+test_loss = calc_loss_loader(test_loader, model, device, num_batches=5)
+print(f"Training loss: {train_loss:.3f}") # 2.453
+print(f"Validation loss: {val_loss:.3f}") # 2.583
+print(f"Test loss: {test_loss:.3f}") # 2.322
+
+
+# Fine-tuning the model on supervised data
