@@ -378,5 +378,131 @@ print(f"Training loss: {train_loss:.3f}") # 2.453
 print(f"Validation loss: {val_loss:.3f}") # 2.583
 print(f"Test loss: {test_loss:.3f}") # 2.322
 
-
 # Fine-tuning the model on supervised data
+
+# implement a training function to fine-tune the model, which means adjusting the model to minimize the training set loss. Minimizing the training set loss
+# will help increase the classification accuracy, which is the overall goal
+
+def train_classifier_simple( model, train_loader, val_loader, optimizer, device, num_epochs, eval_freq, eval_iter):
+    train_losses, val_losses, train_accs, val_accs = [], [], [], [] # to track loses and examples seen
+    examples_seen, global_step = 0, -1
+
+    for epoch in range(num_epochs): # main training loop
+        model.train() # sets model to training mode
+
+        for input_batch, target_batch in train_loader: 
+            optimizer.zero_grad() # # resets the loss grad from the previous batch iteration
+            loss = calc_loss_batch(
+            input_batch, target_batch, model, device
+            )
+            loss.backward() # calc loss gradient
+            optimizer.step() # updates models weights using loss gradients
+            examples_seen += input_batch.shape[0] # new: tracks examples instead of tokens
+            global_step += 1
+
+            if global_step % eval_freq == 0: # optional eval step
+                train_loss, val_loss = evaluate_model(
+                    model, train_loader, val_loader, device, eval_iter)
+                train_losses.append(train_loss)
+                val_losses.append(val_loss)
+                print(f"Ep {epoch+1} (Step {global_step:06d}): "
+                    f"Train loss {train_loss:.3f}, "
+                    f"Val loss {val_loss:.3f}"
+                )
+                
+        train_accuracy = calc_accuracy_loader( # Calculates accuracy after each epoch
+            train_loader, model, device, num_batches=eval_iter
+        )
+        val_accuracy = calc_accuracy_loader(
+            val_loader, model, device, num_batches=eval_iter
+        )
+        
+        print(f"Training accuracy: {train_accuracy*100:.2f}% | ", end="")
+        print(f"Validation accuracy: {val_accuracy*100:.2f}%")
+        train_accs.append(train_accuracy)
+        val_accs.append(val_accuracy)
+    return train_losses, val_losses, train_accs, val_accs, examples_seen
+
+def evaluate_model(model, train_loader, val_loader, device, eval_iter):
+    model.eval()
+    with torch.no_grad():
+        train_loss = calc_loss_loader(
+            train_loader, model, device, num_batches=eval_iter
+        )
+        val_loss = calc_loss_loader(
+            val_loader, model, device, num_batches=eval_iter
+        )
+    model.train()
+    return train_loss, val_loss
+
+import time
+
+start_time = time.time()
+torch.manual_seed(123)
+optimizer = torch.optim.AdamW(model.parameters(), lr=5e-5, weight_decay=0.1)
+num_epochs = 5
+
+train_losses, val_losses, train_accs, val_accs, examples_seen = \
+    train_classifier_simple(
+        model, train_loader, val_loader, optimizer, device,
+        num_epochs=num_epochs, eval_freq=50,
+        eval_iter=5
+    )
+
+end_time = time.time()
+execution_time_minutes = (end_time - start_time) / 60
+print(f"Training completed in {execution_time_minutes:.2f} minutes.") # Training accuracy: 100.00% | Validation accuracy: 97.50% Training completed in 5.65 minutes.
+
+# calculate perfomance matrix
+train_accuracy = calc_accuracy_loader(train_loader, model, device)
+val_accuracy = calc_accuracy_loader(val_loader, model, device)
+test_accuracy = calc_accuracy_loader(test_loader, model, device)
+
+print(f"Training accuracy: {train_accuracy*100:.2f}%") # 97.21%
+print(f"Validation accuracy: {val_accuracy*100:.2f}%") # 97.32%
+print(f"Test accuracy: {test_accuracy*100:.2f}%") # 95.67%
+
+# Using the LLM as a spam classifier using the model to classify new texts
+def classify_review(text, model, tokenizer, device, max_length=None, pad_token_id=50256):
+    model.eval()
+
+    input_ids = tokenizer.encode(text) # prepare inputs to the model
+    supported_context_length = model.pos_emb.weight.shape[1]
+
+    input_ids = input_ids[:min( # truncates seqs if they are too long
+    max_length, supported_context_length
+    )]
+
+    input_ids += [pad_token_id] * (max_length - len(input_ids)) # pads seqs to the longest seq
+
+    input_tensor = torch.tensor( # adds batch dim
+        input_ids, device=device
+    ).unsqueeze(0) 
+
+    with torch.no_grad(): # models inference without gradient tracking
+        logits = model(input_tensor)[:, -1, :] # logits of the last o/p token
+    predicted_label = torch.argmax(logits, dim=-1).item()
+    
+    return "spam" if predicted_label == 1 else "not spam" # last classified ouput
+
+text_1 = (
+    "You are a winner you have been specially"
+    " selected to receive $1000 cash or a $2000 award."
+)
+print(classify_review(
+    text_1, model, tokenizer, device, max_length=train_dataset.max_length
+))
+
+text_2 = (
+    "Hey, just wanted to check if we're still on"
+    " for dinner tonight? Let me know!"
+)
+print(classify_review(
+    text_2, model, tokenizer, device, max_length=train_dataset.max_length
+))
+
+torch.save(model.state_dict(), "review_classifier.pth")
+
+model_state_dict = torch.load("review_classifier.pth", map_location=device)
+model.load_state_dict(model_state_dict)
+
