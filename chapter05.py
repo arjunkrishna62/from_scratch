@@ -552,9 +552,5 @@ token_ids = generate(
     top_k=50,
     temperature=1.0
 ) 
-print("Output text after pre-training:\n", token_ids_to_text(token_ids, tokenizer)) # if the model is loaded correctly then it will produce coherant text
+# print("Output text after pre-training:\n", token_ids_to_text(token_ids, tokenizer)) # if the model is loaded correctly then it will produce coherant text
 
-with torch.no_grad():
-    outputs = model(inputs)
-print("Outputs:\n", outputs)
-print("Outputs dimensions:", outputs.shape)
