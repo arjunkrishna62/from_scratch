@@ -177,7 +177,58 @@ def custom_collate_fn(batch, pad_token_id=50256, ignore_index=-100, allowed_max_
     return inputs_tensor, targets_tensor
 
 inputs, targets = custom_collate_fn(batch)
-print('inputs:\n',inputs)
-print('padded targets after replacing the token id 50256 with -100: \n',targets)
+# print('inputs:\n',inputs)
+# print('padded targets after replacing the token id 50256 with -100: \n',targets)
 
 
+# Creating data loaders for an instruction dataset
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# if torch.backends.mps.is_available():
+#     device = torch.device("mps")
+# print("Device:", device) # cpu
+
+from functools import partial
+customized_collate_fn = partial(
+    custom_collate_fn,
+    device=device,
+    allowed_max_length=1024
+)
+
+# initializing data loders - automaticallly shuffle and oragnize the batches for llm instruction for fine tuing process
+
+from torch.utils.data import DataLoader
+
+num_workers = 0
+batch_size = 8
+torch.manual_seed(123)
+
+train_dataset = InstructionDataset(train_data, tokenizer)
+train_loader = DataLoader(
+    train_dataset,
+    batch_size=batch_size,
+    collate_fn=customized_collate_fn,
+    shuffle=True,
+    drop_last=True,
+    num_workers=num_workers
+)
+
+val_dataset = InstructionDataset(val_data, tokenizer)
+val_loader = DataLoader(
+    val_dataset,
+    batch_size=batch_size,
+    collate_fn=customized_collate_fn,
+    shuffle=False,
+    drop_last=False,
+    num_workers=num_workers
+)
+
+test_dataset = InstructionDataset(test_data, tokenizer)
+test_loader = DataLoader(
+    test_dataset,
+    batch_size=batch_size,
+    collate_fn=customized_collate_fn,
+    shuffle=False,
+    drop_last=False,
+    num_workers=num_workers
+)
