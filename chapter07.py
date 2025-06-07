@@ -232,3 +232,51 @@ test_loader = DataLoader(
     drop_last=False,
     num_workers=num_workers
 )
+
+# This output shows that the first input and target batch have dimensions 8 × 61, where 8 represents the batch size and 61 is the number of tokens in each training example in
+# this batch. The second input and target batch have a different number of tokens—for instance, 76. Thanks to our custom collate function, the data loader is able to create
+# batches of different lengths
+
+# print("Train loader:")
+# for inputs, targets in train_loader:
+#     print(inputs.shape, targets.shape)
+
+# we load a pre-trained LLM to fine-tune with this data loader
+
+# Loading a pretrained LLM
+
+from gpt_download import download_and_load_gpt2
+from chapter04 import GPTModel
+from chapter05 import load_weights_into_gpt
+BASE_CONFIG = {
+    "vocab_size": 50257, # Vocabulary size
+    "context_length": 1024, # Context length
+    "drop_rate": 0.0, # Dropout rate
+    "qkv_bias": True # Query-key-value bias
+}
+model_configs = {
+    "gpt2-small (124M)": {"emb_dim": 768, "n_layers": 12, "n_heads": 12},
+    "gpt2-medium (355M)": {"emb_dim": 1024, "n_layers": 24, "n_heads": 16},
+    "gpt2-large (774M)": {"emb_dim": 1280, "n_layers": 36, "n_heads": 20},
+    "gpt2-xl (1558M)": {"emb_dim": 1600, "n_layers": 48, "n_heads": 25},
+}
+CHOOSE_MODEL = "gpt2-medium (355M)"
+
+BASE_CONFIG.update(model_configs[CHOOSE_MODEL])
+model_size = CHOOSE_MODEL.split(" ")[-1].lstrip("(").rstrip(")")
+
+settings, params = download_and_load_gpt2(
+    model_size=model_size,
+    models_dir="gpt2"
+)
+
+model = GPTModel(BASE_CONFIG)
+load_weights_into_gpt(model, params)
+model.eval()
+
+from transformers import GPT2LMHeadModel
+model = GPT2LMHeadModel.from_pretrained(
+    "gpt2",
+    cache_dir="gpt2",
+    resume_download=True    # this handles chunked downloads and retries
+)
