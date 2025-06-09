@@ -39,7 +39,7 @@ def format_input(entry):
 
 model_input = format_input(data[50])
 desired_response = f"\n\n### Response:\n{data[50]['output']}"
-print(model_input + desired_response)
+# print(model_input + desired_response)
 
 # dividing the dataset into train, test, val
 
@@ -52,9 +52,9 @@ test_data = data[train_portion:train_portion + test_portion]
 val_data = data[train_portion + test_portion:]
 
 
-print("Training set length:", len(train_data)) # 935
-print("Validation set length:", len(val_data)) # 55
-print("Test set length:", len(test_data)) # 110
+# print("Training set length:", len(train_data)) # 935
+# print("Validation set length:", len(val_data)) # 55
+# print("Test set length:", len(test_data)) # 110
 
 
 
@@ -136,8 +136,8 @@ def custom_collate_draft_2(batch, pad_token_id=50256, device="cpu"):
     targets_tensor = torch.stack(targets_lst).to(device)
     return inputs_tensor, targets_tensor
 inputs, targets = custom_collate_draft_2(batch)
-print('inputs',inputs)
-print('targets after shifted by +1 pos:\n',targets)
+# print('inputs',inputs)
+# print('targets after shifted by +1 pos:\n',targets)
 
 # Replace certain padding tokens by -100 to exclude them from the training loss.
 
@@ -200,7 +200,7 @@ customized_collate_fn = partial(
 from torch.utils.data import DataLoader
 
 num_workers = 0
-batch_size = 8
+batch_size = 2
 torch.manual_seed(123)
 
 train_dataset = InstructionDataset(train_data, tokenizer)
@@ -277,7 +277,7 @@ model.eval()
 
 torch.manual_seed(123)
 input_text = format_input(val_data[0])
-print(input_text)
+# print(input_text)
 
 from chapter05 import generate, text_to_token_ids, token_ids_to_text
 
@@ -291,4 +291,48 @@ token_ids = generate(
 generated_text = token_ids_to_text(token_ids, tokenizer)
 
 response_text = generated_text[len(input_text):].strip()
-print(response_text)
+print(response_text) # this output shows that the pretrained model is not yet capable of correctly following the given instruction.
+
+# fine tuning the llm on instruction data
+
+from chapter05 import (
+    calc_loss_loader,
+    train_model_simple
+)
+
+model.to(device)
+torch.manual_seed(123)
+with torch.no_grad():
+    train_loss = calc_loss_loader(
+    train_loader, model, device, num_batches=5
+    )
+    val_loss = calc_loss_loader(
+        val_loader, model, device, num_batches=5
+)
+# print("Training loss:", train_loss) # 3.825908660888672
+# print("Validation loss:", val_loss) # 3.7619335651397705
+
+# Instruction fine-tuning the pretrained LLM
+
+import time
+
+start_time = time.time()
+torch.manual_seed(123)
+optimizer = torch.optim.AdamW(
+    model.parameters(), lr=0.00005, weight_decay=0.1
+)
+num_epochs = 2
+train_losses, val_losses, tokens_seen = train_model_simple(
+    model, train_loader, val_loader, optimizer, device,
+    num_epochs=num_epochs, eval_freq=5, eval_iter=5,
+    start_context=format_input(val_data[0]), tokenizer=tokenizer
+)
+end_time = time.time()
+execution_time_minutes = (end_time - start_time) / 60
+print(f"Training completed in {execution_time_minutes:.2f} minutes.") # we can see that model is learning graudually , consistenttly decreasing training and val loss over thw two epochs
+# on CPU it will take 15-16 mins for 2 epochs while on GPU A100 0.86sec seconds or with L4 - 1.83 seconds. 
+
+from chapter05 import plot_losses
+epochs_tensor = torch.linspace(0, num_epochs, len(train_losses))
+plot_losses(epochs_tensor, tokens_seen, train_losses, val_losses)
+
