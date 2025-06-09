@@ -248,11 +248,12 @@ test_loader = DataLoader(
 from gpt_download import download_and_load_gpt2
 from chapter04 import GPTModel
 from chapter05 import load_weights_into_gpt
+
 BASE_CONFIG = {
-    "vocab_size": 50257, # Vocabulary size
-    "context_length": 1024, # Context length
-    "drop_rate": 0.0, # Dropout rate
-    "qkv_bias": True # Query-key-value bias
+    "vocab_size": 50257, # vocabulary size
+    "context_length": 1024, # context length
+    "drop_rate": 0.0, # dropout rate
+    "qkv_bias": True # query-key-value bias
 }
 model_configs = {
     "gpt2-small (124M)": {"emb_dim": 768, "n_layers": 12, "n_heads": 12},
@@ -274,9 +275,20 @@ model = GPTModel(BASE_CONFIG)
 load_weights_into_gpt(model, params)
 model.eval()
 
-from transformers import GPT2LMHeadModel
-model = GPT2LMHeadModel.from_pretrained(
-    "gpt2",
-    cache_dir="gpt2",
-    resume_download=True    # this handles chunked downloads and retries
+torch.manual_seed(123)
+input_text = format_input(val_data[0])
+print(input_text)
+
+from chapter05 import generate, text_to_token_ids, token_ids_to_text
+
+token_ids = generate(
+    model=model,
+    idx=text_to_token_ids(input_text, tokenizer),
+    max_new_tokens=35,
+    context_size=BASE_CONFIG["context_length"],
+    eos_id=50256,
 )
+generated_text = token_ids_to_text(token_ids, tokenizer)
+
+response_text = generated_text[len(input_text):].strip()
+print(response_text)
