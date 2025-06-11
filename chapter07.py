@@ -314,27 +314,27 @@ with torch.no_grad():
 
 # Instruction fine-tuning the pretrained LLM
 
-# import time
+import time
 
-# start_time = time.time()
-# torch.manual_seed(123)
-# optimizer = torch.optim.AdamW(
-#     model.parameters(), lr=0.00005, weight_decay=0.1
-# )
-# num_epochs = 2
-# train_losses, val_losses, tokens_seen = train_model_simple(
-#     model, train_loader, val_loader, optimizer, device,
-#     num_epochs=num_epochs, eval_freq=5, eval_iter=5,
-#     start_context=format_input(val_data[0]), tokenizer=tokenizer
-# )
-# end_time = time.time()
-# execution_time_minutes = (end_time - start_time) / 60
-# print(f"Training completed in {execution_time_minutes:.2f} minutes.") # we can see that model is learning graudually , consistenttly decreasing training and val loss over thw two epochs
-# # on CPU it will take 15-16 mins for 2 epochs while on GPU A100 0.86sec seconds or with L4 - 1.83 seconds. 
+start_time = time.time()
+torch.manual_seed(123)
+optimizer = torch.optim.AdamW(
+    model.parameters(), lr=0.00005, weight_decay=0.1
+)
+num_epochs = 2
+train_losses, val_losses, tokens_seen = train_model_simple(
+    model, train_loader, val_loader, optimizer, device,
+    num_epochs=num_epochs, eval_freq=50, eval_iter=50,
+    start_context=format_input(val_data[0]), tokenizer=tokenizer
+)
+end_time = time.time()
+execution_time_minutes = (end_time - start_time) / 60
+print(f"Training completed in {execution_time_minutes:.2f} minutes.") # we can see that model is learning graudually , consistenttly decreasing training and val loss over thw two epochs
+# on CPU it will take 15-16 mins for 2 epochs while on GPU A100 0.86sec seconds or with L4 - 1.83 seconds. 
 
-# from chapter05 import plot_losses
-# epochs_tensor = torch.linspace(0, num_epochs, len(train_losses))
-# plot_losses(epochs_tensor, tokens_seen, train_losses, val_losses)
+from chapter05 import plot_losses
+epochs_tensor = torch.linspace(0, num_epochs, len(train_losses))
+plot_losses(epochs_tensor, tokens_seen, train_losses, val_losses)
 
 torch.manual_seed(123) 
 for entry in test_data[:3]: # Iterates over the first three test set samples
@@ -357,3 +357,27 @@ print(input_text)
 print(f"\nCorrect response:\n>> {entry['output']}")
 print(f"\nModel response:\n>> {response_text.strip()}")
 print("-------------------------------------")
+
+# generating the test set respones (evaluating the model perfomance)
+
+from tqdm import tqdm
+
+for i, entry in tqdm(enumerate(test_data), total=len(test_data)):
+    input_text = format_input(entry)
+    token_ids = generate(
+        model=model,
+        idx=text_to_token_ids(input_text, tokenizer).to(device),
+        max_new_tokens=256,
+        context_size=BASE_CONFIG["context_length"],
+        eos_id=50256
+    )
+    generated_text = token_ids_to_text(token_ids, tokenizer)
+    response_text = (
+        generated_text[len(input_text):]
+        .replace("### Response:", "")
+        .strip()
+    )
+    test_data[i]["model_response"] = response_text
+with open("instruction-data-with-response.json", "w") as file:
+    json.dump(test_data, file, indent=4)
+
