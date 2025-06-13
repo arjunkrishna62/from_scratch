@@ -167,9 +167,8 @@ print("Validation loss:", val_loss)
 
 # The main function for pretraining LLMs
 
-def train_model_simple(model, train_loader, val_loader,
-    optimizer, device, num_epochs,
-    eval_freq, eval_iter, start_context, tokenizer):
+def train_model_simple(model, train_loader, val_loader, optimizer, device, num_epochs, eval_freq, eval_iter, start_context, tokenizer):
+    
     train_losses, val_losses, track_tokens_seen = [], [], [] # initialized list to track losses and tokens each
     tokens_seen, global_step = 0, -1
     
