@@ -10,7 +10,7 @@ This project implements:
 - **Position-wise feed-forward networks**
 - **Sinusoidal positional encodings**
 - **Encoder and decoder stacks**
-- **Beam search decoding**
+- **Feed Forward(MLP)**
 
 It trains a Transformer model for **language modeling** and **classification/instruction-following** tasks — all without using high‑level libraries like Hugging Face.
 
