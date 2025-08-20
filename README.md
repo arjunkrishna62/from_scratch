@@ -1,8 +1,8 @@
-# LLM From Scratch 🚀
+# LLM From Scratch
 
 A simplified implementation of the **Transformer** architecture ("Attention Is All You Need") from scratch in Python using **PyTorch**, built as part of my Master’s research projects.
 
-## 📘 Overview
+## Overview
 
 This project implements:
 
@@ -14,13 +14,13 @@ This project implements:
 
 It trains a Transformer model for **language modeling** and **classification/instruction-following** tasks — all without using high‑level libraries like Hugging Face.
 
-## 🚧 Motivation
+## Motivation
 
 - Reinforce understanding of core Transformer components (attention, residuals, layer norm).
 - Learn how training loops, batching, masking, and decoding work under the hood.
 - Bridge theory and code by building from the ground up.
 
-## ⚙️ Getting Started
+## Getting Started
 
 ### 1. Clone & Setup
 ```bash
